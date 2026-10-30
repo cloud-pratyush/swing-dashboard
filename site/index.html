@@ -12,7 +12,6 @@
   <h1>Swing Dashboard</h1>
   <span id="updated" class="muted"></span>
 </header>
-<div id="funnel" class="funnel muted"></div>
 <div id="banner" class="banner" hidden></div>
 
 <main class="grid">
@@ -32,19 +31,17 @@
       <div id="chips-setup" class="chips"></div>
       <div class="frow">
         <select id="f-sector" aria-label="Sector"></select>
-        <select id="f-grade" aria-label="Minimum grade">
-          <option value="A">Grade A only</option>
-          <option value="B">Grade A–B</option>
-          <option value="all">Include watch-only</option>
-        </select>
       </div>
       <div class="frow">
-        <label><input type="checkbox" id="f-earn"> hide earnings ≤5d</label>
+        <select id="f-sort" aria-label="Sort by"></select>
+        <button id="f-dir" class="chip" type="button" title="Reverse sort order"></button>
+      </div>
+      <div class="frow">
+        <label><input type="checkbox" id="f-earn"> hide earnings soon</label>
         <label><input type="checkbox" id="show-filtered"> show filtered</label>
       </div>
     </div>
     <div class="card scroll"><table id="ranking"></table></div>
-    <p class="muted small">Grade A ≥ 70, B ≥ 55 on a setup-specific 0–100 score. W = watch only. ↑/↓ keys step through the list. Click any row or card to load its chart.</p>
   </section>
 
   <section class="col" id="col-right">
@@ -59,9 +56,7 @@
   </section>
 </main>
 
-<footer class="muted small">
-  Educational tool, not financial advice. Signals come from end-of-day data and are not a guarantee of profit.
-</footer>
+<footer id="rules" class="muted small"></footer>
 <script src="app.js"></script>
 </body>
 </html>
