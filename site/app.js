@@ -193,7 +193,8 @@ function renderRanking() {
       state.visible.push(r.ticker);
       const tags = r.setups.map((s) => `<span class="tag" title="${LABELS[s]}">${SHORT[s]}</span>`).join("") +
         Object.keys(r.filtered).map((s) => `<span class="tag off" title="${LABELS[s]}: ${r.filtered[s]}">${SHORT[s]}</span>`).join("");
-      const earn = r.earnings && r.earnings.soon ? `<span class="tag warn">Earn ${r.earnings.days}d</span>` : "";
+      const earn = (r.earnings && r.earnings.soon ? `<span class="tag warn">Earn ${r.earnings.days}d</span>` : "") +
+        (r.post_earnings ? `<span class="tag warn">Post-earn</span>` : "");
       body += `<tr class="row ${state.selected === r.ticker ? "sel" : ""}" data-t="${r.ticker}">
         <td>${i + 1}</td><td><b>${r.ticker}</b></td><td class="${cls(r.chg)}">${r.close}</td>
         <td class="${cls(r.chg)}">${r.chg > 0 ? "+" : ""}${r.chg}%</td><td>${r.rsi}</td><td>${r.vol_ratio}×</td>
