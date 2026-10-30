@@ -4,8 +4,16 @@ import numpy as np
 import pandas as pd
 
 
+def _f(x, default=0.0):
+    try:
+        x = float(x)
+    except (TypeError, ValueError):
+        return default
+    return default if math.isnan(x) else x
+
+
 def _clip01(x):
-    return float(min(max(x, 0.0), 1.0))
+    return min(max(_f(x), 0.0), 1.0)
 
 
 def metrics_frame(frames, spy_close):
@@ -30,17 +38,72 @@ def metrics_frame(frames, spy_close):
     return m
 
 
-def composite_score(m, n_setups):
-    """0-100. Relative strength 35, trend 25, volume 15, confluence 15, 52w-high proximity 10."""
-    rs = 0.5 * (m["rs_pct"] if not math.isnan(m["rs_pct"]) else 0) + 0.5 * float(m["rs_up"])
-    adx = m["adx"] if not pd.isna(m["adx"]) else 0
-    trend = 0.5 * float(m["stack"]) + 0.5 * _clip01((adx - 15) / 20)
-    vr = m["vol_ratio"] if not pd.isna(m["vol_ratio"]) else 0
-    vol = 0.5 * _clip01(vr / 2) + 0.5 * float(m["obv_up"])
-    conf = min(n_setups, 3) / 3
-    nh = m["near_high"] if not pd.isna(m["near_high"]) else 0
-    prox = _clip01((nh - 0.8) / 0.2)
-    return round(100 * (0.35 * rs + 0.25 * trend + 0.15 * vol + 0.15 * conf + 0.10 * prox), 1)
+def _rs(m):
+    return 0.5 * _f(m["rs_pct"]) + 0.5 * float(bool(m["rs_up"]))
+
+
+def _trend(m):
+    return 0.5 * float(bool(m["stack"])) + 0.5 * _clip01((_f(m["adx"]) - 15) / 20)
+
+
+def _prox(m):
+    return _clip01((_f(m["near_high"]) - 0.8) / 0.2)
+
+
+def signal_score(setup, m, df, cfg):
+    """Setup-specific 0-100 score plus a breakdown [{n, v, w}] (v = 0..1 component, w = weight)."""
+    last = df.iloc[-1]
+    close = _f(last["Close"])
+    atr = _f(last["ATR"], 1e-9) or 1e-9
+    vr = _f(m["vol_ratio"])
+    rs, trend, prox = _rs(m), _trend(m), _prox(m)
+    obv = float(bool(m["obv_up"]))
+    sma200 = _f(last["SMA200"])
+    above200 = float(sma200 > 0 and close > sma200)
+
+    if setup == "breakout":
+        parts = [("Relative strength", rs, 0.30), ("Trend quality", trend, 0.20),
+                 ("Volume surge", _clip01((vr - 1) / 2), 0.20), ("Near 52-week high", prox, 0.20),
+                 ("OBV rising", obv, 0.10)]
+    elif setup == "pullback":
+        tight = _clip01(1 - abs(close - _f(last["EMA21"])) / atr / 1.5)
+        parts = [("Relative strength", rs, 0.30), ("Trend quality", trend, 0.25),
+                 ("Tight to 21-EMA", tight, 0.15), ("Volume dry-up", _clip01(1 - vr), 0.15),
+                 ("Near 52-week high", prox, 0.15)]
+    elif setup == "mean_reversion":
+        c = cfg["setups"]["mean_reversion"]
+        parts = [("Oversold depth", _clip01((c["rsi_max"] - _f(last["RSI"], 50)) / 20), 0.30),
+                 ("Long-term trend intact", above200, 0.25),
+                 ("Reversal candle strength", _clip01((close - _f(last["Open"])) / atr), 0.20),
+                 ("Relative strength floor", rs, 0.15), ("Capitulation volume", _clip01((vr - 1) / 2), 0.10)]
+    elif setup == "squeeze":
+        q = cfg["setups"]["squeeze"]
+        minw = _f(df["BB_Width"].rolling(q["lookback"]).min().iloc[-1], 1e-9) or 1e-9
+        ratio = _f(last["BB_Width"]) / minw
+        tight = _clip01(1 - (ratio - 1) / max(q["width_tol"] - 1, 1e-9))
+        parts = [("Squeeze tightness", tight, 0.25), ("Trend quality", trend, 0.25),
+                 ("Relative strength", rs, 0.25), ("OBV rising", obv, 0.15), ("Near 52-week high", prox, 0.10)]
+    else:  # shock: informational only
+        parts = [("Relative strength", rs, 0.40), ("Above 200-day average", above200, 0.30),
+                 ("Volume spike", _clip01((vr - 1) / 3), 0.30)]
+
+    score = round(100 * sum(v * w for _, v, w in parts), 1)
+    return score, [{"n": n, "v": round(v, 2), "w": w} for n, v, w in parts]
+
+
+def grade_for(setup, score, cfg):
+    if setup == "shock":
+        return "W"
+    g = cfg["grading"]
+    return "A" if score >= g["A"] else "B" if score >= g["B"] else "C"
+
+
+def bucket_for(gated, earnings_soon, grade):
+    if gated:
+        return "filtered"
+    if earnings_soon:
+        return "wait"
+    return "actionable" if grade in ("A", "B") else "watch"
 
 
 def gate_reason(setup, direction, vix, sector_beats_spy, cfg):

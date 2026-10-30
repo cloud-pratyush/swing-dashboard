@@ -51,6 +51,13 @@ def next_earnings(symbol):
     return None
 
 
+def drop_partial_bar(df, now_et):
+    """Remove today's bar if the run happens before the US close (unfinished candle)."""
+    if len(df) and df.index[-1].date() == now_et.date() and now_et.hour * 60 + now_et.minute < 16 * 60 + 15:
+        return df.iloc[:-1]
+    return df
+
+
 def expected_last_session(now_et):
     """Most recent weekday strictly before today (ET). Holidays can make data legitimately older."""
     d = now_et.date() - timedelta(days=1)
