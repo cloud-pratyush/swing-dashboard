@@ -24,7 +24,7 @@ indicators:
 setups:
   breakout:        {atr_pct: 0.02, vol_mult: 1.5}
   mean_reversion:  {rsi_max: 40, stoch_max: 30, bb80_tol: 1.01}
-  pullback:        {ema_tol: 1.005}
+  pullback:        {ema_tol: 1.005, min_adx: 18}
   squeeze:         {width_tol: 1.05, rsi_min: 45, rsi_max: 55, lookback: 100}
   shock:           {drop_pct: -0.08}
 
