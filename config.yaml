@@ -43,12 +43,8 @@ gating:
 earnings:
   warn_days: 5
 
-grading:                        # setup score (0-100) -> grade; shock is always "W" (watch only)
-  A: 70
-  B: 55
-
 output:
-  max_per_setup: 5              # actionable cards shown per setup section
+  max_per_setup: 6              # cards shown per setup section (best relative strength first)
   max_chart_tickers: 60         # chart data written for this many signal tickers
   chart_bars: 126
 
