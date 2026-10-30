@@ -10,7 +10,10 @@
 <body>
 <header>
   <h1>Swing Dashboard</h1>
-  <span id="updated" class="muted"></span>
+  <div class="hdr-right">
+    <span id="updated" class="muted"></span>
+    <button id="theme-btn" class="chip" type="button" title="Switch between dark and light mode"></button>
+  </div>
 </header>
 <div id="banner" class="banner" hidden></div>
 
@@ -46,13 +49,15 @@
 
   <section class="col" id="col-right">
     <h2>Trend Charts</h2>
-    <div class="card sticky" id="big">
+    <div class="card" id="big">
       <div class="mini-title"><span id="big-title"></span><span id="big-sub" class="muted small"></span></div>
       <div id="big-chart" class="chart tall"></div>
       <div id="big-rsi" class="chart rsi"></div>
     </div>
-    <div class="card" id="detail"></div>
-    <div id="setup-sections"></div>
+    <div id="right-scroll">
+      <div class="card" id="detail"></div>
+      <div id="setup-sections"></div>
+    </div>
   </section>
 </main>
 

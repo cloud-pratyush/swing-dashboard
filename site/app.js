@@ -1,8 +1,23 @@
 const $ = (s) => document.querySelector(s);
-const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-const T = dark
-  ? { bg: "#161b23", text: "#98a2b3", grid: "#262d38" }
-  : { bg: "#ffffff", text: "#667085", grid: "#e3e6ec" };
+const THEMES = {
+  dark: { bg: "#161b23", text: "#98a2b3", grid: "#262d38" },
+  light: { bg: "#ffffff", text: "#667085", grid: "#e3e6ec" },
+};
+let T = THEMES.light;
+function currentMode() {
+  return document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+}
+function applyTheme(mode, persist) {
+  document.documentElement.dataset.theme = mode;
+  T = THEMES[mode];
+  $("#theme-btn").textContent = mode === "dark" ? "☀ Light" : "☾ Dark";
+  if (persist) { try { localStorage.setItem("theme", mode); } catch { /* ignore */ } }
+}
+(() => {
+  let saved = null;
+  try { saved = localStorage.getItem("theme"); } catch { /* ignore */ }
+  applyTheme(saved === "light" || saved === "dark" ? saved : currentMode(), false);
+})();
 const PALETTE = ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2",
                  "#db2777", "#65a30d", "#475569", "#ea580c", "#0d9488"];
 const LABELS = {
@@ -252,7 +267,7 @@ function highlight() {
   document.querySelectorAll("[data-t]").forEach((el) => el.classList.toggle("sel", el.dataset.t === state.selected));
 }
 
-async function select(ticker) {
+async function select(ticker, scroll = true) {
   const r = state.rows.find((x) => x.ticker === ticker);
   if (!r) return;
   state.selected = ticker;
@@ -278,7 +293,7 @@ async function select(ticker) {
   ] : [];
   priceChart($("#big-chart"), bars, { candles: true, lines });
   rsiChart($("#big-rsi"), bars);
-  if (matchMedia("(max-width: 1100px)").matches) $("#big").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll && matchMedia("(max-width: 1100px)").matches) $("#big").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderDetail(r) {
@@ -368,6 +383,7 @@ async function init() {
     const [meta, m] = await Promise.all([getJSON("meta.json"), getJSON("market.json")]);
     $("#updated").textContent = `Updated ${new Date(meta.generated).toLocaleString()}`;
     $("#rules").textContent = rulesText(m, meta.rules);
+    state.market = m;
     if (meta.warnings.length) { const b = $("#banner"); b.textContent = meta.warnings.join(" | "); b.hidden = false; }
     state.rows = await getJSON("ranking.json");
     await renderMarket(m);
@@ -382,4 +398,13 @@ async function init() {
     const b = $("#banner"); b.textContent = `Could not load data: ${e.message}`; b.hidden = false;
   }
 }
+
+$("#theme-btn").addEventListener("click", async () => {
+  applyTheme(currentMode() === "dark" ? "light" : "dark", true);
+  if (!state.market) return;
+  await renderMarket(state.market);
+  if (state.selected) await select(state.selected, false);
+  await renderSections();
+});
+
 init();

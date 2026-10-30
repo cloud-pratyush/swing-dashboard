@@ -3,15 +3,22 @@
   --up: #15803d; --down: #b91c1c; --accent: #2563eb; --warn-bg: #fef3c7; --warn-text: #92400e;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0f1319; --card: #161b23; --text: #e6e9ef; --muted: #98a2b3; --line: #262d38;
     --up: #4ade80; --down: #f87171; --accent: #60a5fa; --warn-bg: #3b2f0b; --warn-text: #fcd34d;
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1319; --card: #161b23; --text: #e6e9ef; --muted: #98a2b3; --line: #262d38;
+  --up: #4ade80; --down: #f87171; --accent: #60a5fa; --warn-bg: #3b2f0b; --warn-text: #fcd34d;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
 header { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px 8px; flex-wrap: wrap; gap: 4px; }
 h1 { font-size: 20px; margin: 0; }
+.hdr-right { display: flex; align-items: center; gap: 10px; }
 h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px; }
 .muted { color: var(--muted); } .small { font-size: 12px; }
 .banner { margin: 0 16px 8px; padding: 8px 12px; border-radius: 8px; background: var(--warn-bg); color: var(--warn-text); }
@@ -44,7 +51,6 @@ select { background: var(--card); color: var(--text); border: 1px solid var(--li
 .kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; }
 .kv span:nth-child(odd) { color: var(--muted); }
 .mini-title { font-weight: 600; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.sticky { position: sticky; top: 8px; z-index: 5; }
 .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-bottom: 4px; }
 .minis .card { margin: 0; cursor: pointer; } .minis .chart { height: 130px; }
 .minis .card.sel { outline: 2px solid var(--accent); }
@@ -59,5 +65,17 @@ select { background: var(--card); color: var(--text); border: 1px solid var(--li
 .bars span:last-child { text-align: right; color: var(--muted); }
 .flags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
 footer { padding: 4px 16px 24px; max-width: 1100px; }
-@media (max-height: 800px) { .sticky { position: static; } }
-@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } .scroll { max-height: 60vh; } .sticky { position: static; } }
+/* Desktop: three independent panes. The right pane keeps the big chart on top and scrolls its own content below it. */
+@media (min-width: 1101px) and (min-height: 650px) {
+  body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header, .banner, footer { flex: none; }
+  .grid { flex: 1; min-height: 0; align-items: stretch; padding-bottom: 8px; }
+  .col { min-height: 0; overflow-y: auto; }
+  .scroll { max-height: none; overflow: visible; }
+  #col-right { display: flex; flex-direction: column; overflow: hidden; }
+  #col-right > h2, #big { flex: none; }
+  #right-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .chart.tall { height: clamp(220px, 36vh, 340px); }
+  .chart.rsi { height: 80px; }
+}
+@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } .scroll { max-height: 60vh; } }
