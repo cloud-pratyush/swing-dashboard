@@ -12,6 +12,7 @@
   <h1>Swing Dashboard</h1>
   <span id="updated" class="muted"></span>
 </header>
+<div id="funnel" class="funnel muted"></div>
 <div id="banner" class="banner" hidden></div>
 
 <main class="grid">
@@ -26,17 +27,34 @@
   </section>
 
   <section class="col" id="col-mid">
-    <h2>Stock Ranking
-      <label class="toggle"><input type="checkbox" id="show-filtered"> show filtered</label>
-    </h2>
+    <h2>Stock Ranking</h2>
+    <div class="card filters">
+      <div id="chips-setup" class="chips"></div>
+      <div class="frow">
+        <select id="f-sector" aria-label="Sector"></select>
+        <select id="f-grade" aria-label="Minimum grade">
+          <option value="A">Grade A only</option>
+          <option value="B">Grade A–B</option>
+          <option value="all">Include watch-only</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label><input type="checkbox" id="f-earn"> hide earnings ≤5d</label>
+        <label><input type="checkbox" id="show-filtered"> show filtered</label>
+      </div>
+    </div>
     <div class="card scroll"><table id="ranking"></table></div>
-    <p class="muted small">Score (0-100) = relative strength 35, trend 25, volume 15, setup confluence 15, 52-week-high proximity 10. Tap a row for its trade plan and chart.</p>
+    <p class="muted small">Grade A ≥ 70, B ≥ 55 on a setup-specific 0–100 score. W = watch only. ↑/↓ keys step through the list. Click any row or card to load its chart.</p>
   </section>
 
   <section class="col" id="col-right">
     <h2>Trend Charts</h2>
-    <div class="card" id="plan"></div>
-    <div id="trend" class="minis"></div>
+    <div class="card sticky" id="big">
+      <div class="mini-title"><span id="big-title"></span><span id="big-sub" class="muted small"></span></div>
+      <div id="big-chart" class="chart tall"></div>
+      <div id="big-rsi" class="chart rsi"></div>
+    </div>
+    <div class="card" id="detail"></div>
     <div id="setup-sections"></div>
   </section>
 </main>
