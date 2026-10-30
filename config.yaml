@@ -1,0 +1,63 @@
+# Swing dashboard configuration. Edit freely; no code changes needed.
+
+account:
+  size: 10000          # used only for position-size suggestions
+  risk_pct: 0.01       # risk 1% of account per trade
+  max_position_pct: 0.25
+
+data:
+  period: "2y"
+  min_bars: 260        # need ~1y for 52w high / 6M relative strength
+  chunk_size: 40
+
+liquidity:
+  min_price: 10
+  min_dollar_volume: 20000000   # 20-day average
+
+indicators:
+  sma_fast: 50
+  sma_slow: 200
+  ema_trend: 21
+  bb_short: 20
+  bb_long: 80
+
+setups:
+  breakout:        {atr_pct: 0.02, vol_mult: 1.5}
+  mean_reversion:  {rsi_max: 40, stoch_max: 30, bb80_tol: 1.01}
+  pullback:        {ema_tol: 1.005}
+  squeeze:         {width_tol: 1.05, rsi_min: 45, rsi_max: 55, lookback: 100}
+  shock:           {drop_pct: -0.08}
+
+trade_plan:
+  stop_atr_mult: 2.0
+  reward_risk: 2.5
+
+gating:
+  vix_block: 30                 # above this, breakout/pullback are filtered out
+  sector_must_beat_spy: [breakout, pullback]
+  regime_allowed:               # setups shown per SPY trend direction
+    Bull:     [breakout, mean_reversion, pullback, squeeze, shock]
+    Sideways: [mean_reversion, pullback, squeeze, shock]
+    Bear:     [mean_reversion, squeeze, shock]
+
+earnings:
+  warn_days: 5
+
+output:
+  max_chart_tickers: 12
+  max_per_setup_charts: 5
+  chart_bars: 126
+
+# ticker lists per sector ETF (~95 liquid US large caps)
+sectors:
+  XLK: {name: Technology, tickers: [AAPL, MSFT, NVDA, AVGO, ORCL, AMD, CRM, ADBE, CSCO, QCOM, INTC, TXN, IBM, NOW]}
+  XLF: {name: Financials, tickers: [JPM, BAC, WFC, MS, GS, V, MA, BRK-B, C, AXP, SCHW, BLK]}
+  XLV: {name: Health Care, tickers: [LLY, UNH, JNJ, ABBV, MRK, TMO, ABT, PFE, AMGN, ISRG]}
+  XLY: {name: Cons. Discretionary, tickers: [AMZN, TSLA, HD, MCD, NKE, LOW, SBUX, BKNG, TJX]}
+  XLP: {name: Cons. Staples, tickers: [WMT, PG, COST, KO, PEP, PM, MDLZ, MO]}
+  XLE: {name: Energy, tickers: [XOM, CVX, COP, SLB, EOG, OXY, PSX]}
+  XLI: {name: Industrials, tickers: [GE, CAT, RTX, UNP, HON, UPS, DE, LMT, BA]}
+  XLB: {name: Materials, tickers: [LIN, SHW, FCX, NEM, APD, ECL]}
+  XLU: {name: Utilities, tickers: [NEE, SO, DUK, CEG, SRE, AEP]}
+  XLRE: {name: Real Estate, tickers: [PLD, AMT, EQIX, SPG, O, PSA]}
+  XLC: {name: Communication, tickers: [GOOGL, META, NFLX, DIS, CMCSA, T, VZ, TMUS]}
