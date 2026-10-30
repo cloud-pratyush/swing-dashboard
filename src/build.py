@@ -13,12 +13,12 @@ import yaml
 from .data import download_all, drop_partial_bar, expected_last_session, next_earnings, recent_earnings
 from .indicators import compute_indicators
 from .regime import breadth, sector_series, sector_table, spy_regime
-from .score import bucket_for, gate_reason, grade_for, metrics_frame, signal_score, trade_plan
+from .score import gate_reason, metrics_frame, signal_score, status_for, trade_plan
 from .setups import SETUP_LABELS, detect_setups
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "site" / "data"
-BUCKET_ORDER = {"actionable": 0, "wait": 1, "watch": 2, "filtered": 3}
+STATUS_ORDER = {"signal": 0, "wait": 1, "watch": 2, "filtered": 3}
 
 
 def num(x, nd=2):
@@ -122,13 +122,12 @@ def main():
         signals = {}
         for s, checks in found.items():
             sc, breakdown = signal_score(s, m, df, cfg)
-            signals[s] = {"score": sc, "grade": grade_for(s, sc, cfg), "checks": checks, "breakdown": breakdown}
+            signals[s] = {"score": sc, "checks": checks, "breakdown": breakdown}
 
         pool = passed or list(found)
         top = max(pool, key=lambda s: signals[s]["score"])
         bonus = min(max(len(passed) - 1, 0) * 5, 10)  # confluence
         score = round(min(signals[top]["score"] + bonus, 100), 1)
-        grade = grade_for(top, score, cfg)
 
         last = df.iloc[-1]
         flags = []
@@ -147,20 +146,22 @@ def main():
             "rsi": num(last["RSI"], 1),
             "vol_ratio": num(last["Volume"] / last["Vol_Avg"]),
             "adx": num(last["ADX"], 1),
+            "atr_pct": num(last["ATR"] / last["Close"] * 100),
+            "dist_high": num((last["Close"] / last["High52"] - 1) * 100, 1),
             "rs_pct": num(m["rs_pct"] * 100, 0),
-            "score": score, "grade": grade, "top": top,
+            "score": score,
             "setups": passed,
             "filtered": filtered,
             "signals": signals,
             "flags": flags,
-            "bucket": None,
+            "status": None,
             "post_earnings": False,
             "plan": trade_plan(last, cfg),
             "earnings": None,
             "spark": [num(x) for x in df["Close"].tail(30)],
         })
 
-    # Earnings check, only for names with signals; earnings soon -> "wait" bucket
+    # Earnings check, only for names with signals; earnings soon -> "wait"
     warn_days = cfg["earnings"]["warn_days"]
     today = now_et.date()
     for r in ranking:
@@ -179,22 +180,17 @@ def main():
                 r["flags"].append(f"Likely post-earnings reaction (reported {rep.isoformat()})")
             else:
                 r["flags"].append("No recent earnings found: possible news event, check headlines")
-        r["bucket"] = bucket_for(not r["setups"], soon, r["grade"])
-    ranking.sort(key=lambda r: (BUCKET_ORDER[r["bucket"]], -r["score"]))
+        r["status"] = status_for(r["setups"], soon)
+    ranking.sort(key=lambda r: (STATUS_ORDER[r["status"]], -(r["rs_pct"] if r["rs_pct"] is not None else -1)))
 
-    # Per-setup sections: actionable only, best first, capped
+    # Per-setup cards: every non-filtered stock, best relative strength first, capped
     cap = cfg["output"]["max_per_setup"]
     setups_out = {}
     for key, label in SETUP_LABELS.items():
         members = [r for r in ranking if key in r["setups"]]
-        act = sorted((r for r in members if r["bucket"] == "actionable"),
-                     key=lambda r: -r["signals"][key]["score"])
         setups_out[key] = {
             "label": label,
-            "tickers": [r["ticker"] for r in act[:cap]],
-            "actionable": len(act),
-            "watch": sum(r["bucket"] == "watch" for r in members),
-            "wait": sum(r["bucket"] == "wait" for r in members),
+            "tickers": [r["ticker"] for r in members[:cap]],
             "filtered": sum(key in r["filtered"] for r in ranking),
         }
 
@@ -203,16 +199,6 @@ def main():
     for r in ranking[: cfg["output"]["max_chart_tickers"]]:
         write(f"charts/{r['ticker']}.json", bars_json(frames[r["ticker"]], n))
     write("charts/SPY.json", bars_json(spy, n))
-
-    funnel = {
-        "scanned": len(ticker_sector),
-        "liquid": len(frames),
-        "signals": len(ranking),
-        "actionable": sum(r["bucket"] == "actionable" for r in ranking),
-        "wait": sum(r["bucket"] == "wait" for r in ranking),
-        "watch": sum(r["bucket"] == "watch" for r in ranking),
-        "filtered": sum(r["bucket"] == "filtered" for r in ranking),
-    }
 
     write("market.json", {
         "regime": f"{direction} {vol_state}",
@@ -236,10 +222,15 @@ def main():
         "universe": len(frames),
         "excluded_illiquid": dropped,
         "warnings": warnings,
-        "funnel": funnel,
+        "rules": {
+            "vix_block": cfg["gating"]["vix_block"],
+            "earnings_days": warn_days,
+            "gated_setups": cfg["gating"]["sector_must_beat_spy"],
+        },
     })
-    print(f"Done: {funnel['scanned']} scanned -> {funnel['liquid']} liquid -> {funnel['signals']} signals "
-          f"-> {funnel['actionable']} actionable. Regime {direction} {vol_state}.")
+    shown = sum(r["status"] == "signal" for r in ranking)
+    print(f"Done: {len(frames)} stocks scanned, {len(ranking)} with setups, {shown} signals. "
+          f"Regime {direction} {vol_state}.")
 
 
 if __name__ == "__main__":

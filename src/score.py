@@ -91,19 +91,15 @@ def signal_score(setup, m, df, cfg):
     return score, [{"n": n, "v": round(v, 2), "w": w} for n, v, w in parts]
 
 
-def grade_for(setup, score, cfg):
-    if setup == "shock":
-        return "W"
-    g = cfg["grading"]
-    return "A" if score >= g["A"] else "B" if score >= g["B"] else "C"
-
-
-def bucket_for(gated, earnings_soon, grade):
-    if gated:
+def status_for(passed, earnings_soon):
+    """signal | wait (earnings soon) | watch (shock only) | filtered (failed every gate)."""
+    if not passed:
         return "filtered"
     if earnings_soon:
         return "wait"
-    return "actionable" if grade in ("A", "B") else "watch"
+    if all(s == "shock" for s in passed):
+        return "watch"
+    return "signal"
 
 
 def gate_reason(setup, direction, vix, sector_beats_spy, cfg):
