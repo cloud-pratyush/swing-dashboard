@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swing Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<header>
+  <h1>Swing Dashboard</h1>
+  <span id="updated" class="muted"></span>
+</header>
+<div id="banner" class="banner" hidden></div>
+
+<main class="grid">
+  <section class="col" id="col-left">
+    <h2>Market Overview</h2>
+    <div class="card"><div id="spy-chart" class="chart"></div></div>
+    <div class="card" id="regime-box"></div>
+
+    <h2>Sector Overview</h2>
+    <div class="card"><div id="sector-chart" class="chart"></div><div id="sector-legend" class="legend"></div></div>
+    <div class="card"><table id="sector-table"></table></div>
+  </section>
+
+  <section class="col" id="col-mid">
+    <h2>Stock Ranking
+      <label class="toggle"><input type="checkbox" id="show-filtered"> show filtered</label>
+    </h2>
+    <div class="card scroll"><table id="ranking"></table></div>
+    <p class="muted small">Score (0-100) = relative strength 35, trend 25, volume 15, setup confluence 15, 52-week-high proximity 10. Tap a row for its trade plan and chart.</p>
+  </section>
+
+  <section class="col" id="col-right">
+    <h2>Trend Charts</h2>
+    <div class="card" id="plan"></div>
+    <div id="trend" class="minis"></div>
+    <div id="setup-sections"></div>
+  </section>
+</main>
+
+<footer class="muted small">
+  Educational tool, not financial advice. Signals come from end-of-day data and are not a guarantee of profit.
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

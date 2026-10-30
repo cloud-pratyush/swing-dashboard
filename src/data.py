@@ -1,0 +1,59 @@
+import time
+from datetime import datetime, timedelta
+
+import pandas as pd
+import yfinance as yf
+
+FIELDS = ["Open", "High", "Low", "Close", "Volume"]
+
+
+def download_all(symbols, period="2y", chunk=40, retries=3):
+    """Batch download. Returns ({symbol: OHLCV df}, [failed symbols])."""
+    out, failed = {}, []
+    symbols = list(dict.fromkeys(symbols))
+    for i in range(0, len(symbols), chunk):
+        part = symbols[i:i + chunk]
+        raw = None
+        for attempt in range(retries):
+            try:
+                raw = yf.download(part, period=period, group_by="ticker", auto_adjust=True,
+                                  progress=False, threads=True)
+                if raw is not None and not raw.empty:
+                    break
+            except Exception as exc:  # network / rate limit
+                print(f"  download retry {attempt + 1} for chunk {i}: {exc}")
+            time.sleep(3 * (attempt + 1))
+        if raw is None or raw.empty:
+            failed.extend(part)
+            continue
+        for s in part:
+            try:
+                df = raw[s] if isinstance(raw.columns, pd.MultiIndex) else raw
+                df = df[FIELDS].dropna(subset=["Close"])
+                if df.empty:
+                    raise ValueError("empty")
+                out[s] = df
+            except Exception:
+                failed.append(s)
+    return out, failed
+
+
+def next_earnings(symbol):
+    """Next earnings date (date) or None. Best effort; yfinance is flaky here."""
+    try:
+        cal = yf.Ticker(symbol).calendar
+        dates = cal.get("Earnings Date") if isinstance(cal, dict) else None
+        if dates:
+            upcoming = [d for d in dates if d >= datetime.utcnow().date()]
+            return min(upcoming) if upcoming else None
+    except Exception:
+        pass
+    return None
+
+
+def expected_last_session(now_et):
+    """Most recent weekday strictly before today (ET). Holidays can make data legitimately older."""
+    d = now_et.date() - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d
