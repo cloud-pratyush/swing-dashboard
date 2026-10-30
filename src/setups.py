@@ -29,6 +29,7 @@ def detect_setups(df, cfg):
         (f"ATR {atr_pct:.1%} of price (min {b['atr_pct']:.0%})", atr_pct >= b["atr_pct"]),
         (f"Volume {vr:.1f}x 20-day average (min {b['vol_mult']}x)", vr > b["vol_mult"]),
         ("Range wider than the previous 3 days", last["Range"] > last["Range_Avg3"]),
+        (f"Above 200-day average {last['SMA200']:.2f}", last["Close"] > last["SMA200"]),
     ])
 
     m = s["mean_reversion"]
@@ -43,6 +44,8 @@ def detect_setups(df, cfg):
     p = s["pullback"]
     add("pullback", [
         (f"Uptrend: close {last['Close']:.2f} above SMA50 {last['SMA50']:.2f}", last["Close"] > last["SMA50"]),
+        (f"Trend structure: SMA50 {last['SMA50']:.2f} above SMA200 {last['SMA200']:.2f}", last["SMA50"] > last["SMA200"]),
+        (f"Trending: ADX {last['ADX']:.0f} (min {p['min_adx']})", last["ADX"] >= p["min_adx"]),
         ("Touched the 21-day EMA and closed back above it",
          last["Low"] <= last["EMA21"] * p["ema_tol"] and last["Close"] >= last["EMA21"]),
         (f"Quiet pullback: volume {vr:.1f}x average (below 1x)", last["Volume"] < last["Vol_Avg"]),

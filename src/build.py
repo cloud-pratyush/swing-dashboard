@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
-from .data import download_all, drop_partial_bar, expected_last_session, next_earnings
+from .data import download_all, drop_partial_bar, expected_last_session, next_earnings, recent_earnings
 from .indicators import compute_indicators
 from .regime import breadth, sector_series, sector_table, spy_regime
 from .score import bucket_for, gate_reason, grade_for, metrics_frame, signal_score, trade_plan
@@ -154,6 +154,7 @@ def main():
             "signals": signals,
             "flags": flags,
             "bucket": None,
+            "post_earnings": False,
             "plan": trade_plan(last, cfg),
             "earnings": None,
             "spark": [num(x) for x in df["Close"].tail(30)],
@@ -171,6 +172,13 @@ def main():
             r["earnings"] = {"date": d.isoformat(), "days": days, "soon": soon}
             if soon:
                 r["flags"].insert(0, f"Earnings in {days} day(s): wait until after the report")
+        if "shock" in r["signals"]:
+            rep = recent_earnings(r["ticker"], today)
+            if rep:
+                r["post_earnings"] = True
+                r["flags"].append(f"Likely post-earnings reaction (reported {rep.isoformat()})")
+            else:
+                r["flags"].append("No recent earnings found: possible news event, check headlines")
         r["bucket"] = bucket_for(not r["setups"], soon, r["grade"])
     ranking.sort(key=lambda r: (BUCKET_ORDER[r["bucket"]], -r["score"]))
 

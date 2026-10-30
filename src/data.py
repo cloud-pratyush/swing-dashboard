@@ -51,6 +51,21 @@ def next_earnings(symbol):
     return None
 
 
+def recent_earnings(symbol, today, days=3):
+    """Date of an earnings report within the last `days` days, else None. Best effort."""
+    try:
+        ed = yf.Ticker(symbol).get_earnings_dates(limit=8)
+        if ed is None or ed.empty:
+            return None
+        for ts in ed.index:
+            d = ts.date()
+            if 0 <= (today - d).days <= days:
+                return d
+    except Exception:
+        pass
+    return None
+
+
 def drop_partial_bar(df, now_et):
     """Remove today's bar if the run happens before the US close (unfinished candle)."""
     if len(df) and df.index[-1].date() == now_et.date() and now_et.hour * 60 + now_et.minute < 16 * 60 + 15:
